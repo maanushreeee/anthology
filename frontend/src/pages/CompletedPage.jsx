@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE = "anthology-production.up.railway.app";
+const API_BASE = "https://anthology-ul35.onrender.com";
 
 export default function CompletedPage() {
   const [completed, setCompleted] = useState([]);

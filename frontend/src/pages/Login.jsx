@@ -16,7 +16,7 @@ export default function AuthPage() {
     setError("");
 
     try {
-      const response = await fetch("anthology-production.up.railway.app/token", {
+      const response = await fetch("https://anthology-ul35.onrender.com/token", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -49,7 +49,7 @@ export default function AuthPage() {
     }
 
     try {
-      const response = await fetch("anthology-production.up.railway.app/signup", {
+      const response = await fetch("https://anthology-ul35.onrender.com/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -66,7 +66,7 @@ export default function AuthPage() {
       }
 
       // Auto-login after signup with the credentials we just signed up with
-      const loginResponse = await fetch("anthology-production.up.railway.app/token", {
+      const loginResponse = await fetch("https://anthology-ul35.onrender.com/token", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",

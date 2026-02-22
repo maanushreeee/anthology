@@ -25,7 +25,7 @@ export default function NavBar() {
       }
 
       try {
-        const response = await fetch("anthology-production.up.railway.app/users/me/", {
+        const response = await fetch("https://anthology-ul35.onrender.com/users/me/", {
           headers: {
             Authorization: `Bearer ${token}`,
           },

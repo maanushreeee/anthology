@@ -10,7 +10,7 @@ import {
   Snackbar
 } from "@mui/material";
 
-const API_BASE = "anthology-production.up.railway.app";
+const API_BASE = "https://anthology-ul35.onrender.com";
 
 export default function Ideas() {
   const [ideas, setIdeas] = useState([]);
