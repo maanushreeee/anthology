@@ -25,7 +25,7 @@ export default function NavBar() {
       }
 
       try {
-        const response = await fetch("http://127.0.0.1:8000/users/me/", {
+        const response = await fetch("anthology-production.up.railway.app/users/me/", {
           headers: {
             Authorization: `Bearer ${token}`,
           },

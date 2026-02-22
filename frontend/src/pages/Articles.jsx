@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { debounceAsync } from "../utils/debounce";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "anthology-production.up.railway.app";
 
 export default function Articles() {
   const [articles, setarticles] = useState([]);
