@@ -1,0 +1,122 @@
+:root {
+  font-family: "Cardo", serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Brand */
+  --color-primary: #1A3636;
+  --color-primary-light: #60a5fa;
+  --color-primary-dark: #1e40af;
+
+  --color-secondary: #677D6A;
+  --color-secondary-light: #a78bfa;
+  --color-secondary-dark: #5b21b6;
+
+  /* Status */
+  --color-success: #10b981;
+
+  /* Backgrounds */
+  --color-bg-default: #D6BD98;
+  --color-bg-paper: #ffffff;
+
+  /* Text */
+  --color-text-primary: #04151F;
+  --color-text-secondary: #64748b;
+
+  /* Misc */
+  --color-divider: #e2e8f0;
+
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+} */
+
+body {
+  margin: 0;
+  /* display: flex; */
+  /* place-items: center; */
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--color-bg-default);
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+/* Material-UI Color Overrides */
+.MuiButton-outlined {
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+}
+
+.MuiButton-outlined:hover {
+  background-color: rgba(26, 54, 54, 0.04) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.MuiButton-contained {
+  background-color: var(--color-primary) !important;
+}
+
+.MuiButton-contained:hover {
+  background-color: #0f1f1f !important;
+}
+
+.MuiRadio-root {
+  color: var(--color-primary) !important;
+}
+
+.MuiRadio-root.Mui-checked {
+  color: var(--color-primary) !important;
+}
+
+.MuiOutlinedInput-root {
+  color: var(--color-primary) !important;
+}
+
+.MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(26, 54, 54, 0.23) !important;
+}
+
+.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: var(--color-primary) !important;
+}
+
+.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--color-primary) !important;
+}
+
+.MuiInputLabel-root {
+  color: var(--color-text-secondary) !important;
+}
+
+.MuiInputLabel-root.Mui-focused {
+  color: var(--color-primary) !important;
+}
+
+.MuiAlert-standardSuccess {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+  color: var(--color-success) !important;
+}
+
+.MuiAlert-standardError {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+}
+
+
+
+

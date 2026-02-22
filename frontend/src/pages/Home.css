@@ -1,0 +1,11 @@
+.home-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 80vh;
+  text-align: center;
+  padding: 0 20px;
+  font-family: "Cardo", serif !important;
+  background-color: var(--color-secondary);
+}
