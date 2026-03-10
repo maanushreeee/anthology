@@ -7,8 +7,7 @@ import {
   List,
   ListItemButton,
 } from "@mui/material";
-
-const API_BASE = "https://anthology-ul35.onrender.com";
+import API_BASE from "../config";
 
 export default function Dashboard() {
   const [ideas, setIdeas] = useState([]);

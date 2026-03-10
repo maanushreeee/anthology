@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 class Token(BaseModel):
     access_token: str
@@ -14,6 +15,9 @@ class User(BaseModel):
     email: str | None = None
     full_name: str | None = None
     disabled: bool | None = None
+    bio: str | None = None
+    avatar: str | None = None
+    member_since: datetime | None = None
 
 
 class UserInDB(User):
@@ -28,3 +32,7 @@ class SignupRequest(BaseModel):
     username: str
     password: str
     email: str | None = None
+
+class UpdateProfileRequest(BaseModel):
+    bio: str | None = None
+    avatar: str | None = None

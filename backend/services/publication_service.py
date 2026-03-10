@@ -1,5 +1,5 @@
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from repos.article_repo import find_article_by_id, update_article
@@ -73,30 +73,29 @@ async def update_publication_name(publication_id: str, name: str) -> Publication
 
 
 async def schedule_article(article_id: str, user_id: str, publish_at: datetime):
-    article = await find_article_by_id(article_id)
+    article = find_article_by_id(article_id)
 
     if not article:
         raise ValueError("Article not found")
-
     if article.owner_id != user_id:
         raise ValueError("Not allowed")
-
     if article.status != "completed":
         raise ValueError("Only completed articles can be scheduled")
-
-    if publish_at <= datetime.utcnow():
+    if publish_at <= datetime.now(timezone.utc):
         raise ValueError("Publish time must be in the future")
 
-    update_article(
-        article_id,
-        {
-            "status": "scheduled",
-            "scheduled_publish_at": publish_at,
-            "updated_at": datetime.utcnow(),
-        },
-    )
+    # Ensure publication exists before scheduling
+    publication = await get_or_create_personal_publication(user_id)
+
+    update_article(article_id, {
+        "status": "scheduled",
+        "scheduled_publish_at": publish_at,
+        "publication_id": publication.id,
+        "updated_at": datetime.now(timezone.utc),
+    })
 
     article.status = "scheduled"
     article.scheduled_publish_at = publish_at
+    article.publication_id = publication.id
     return article
 

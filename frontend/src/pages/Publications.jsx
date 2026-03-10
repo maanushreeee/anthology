@@ -14,8 +14,7 @@ import {
   Snackbar,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-
-const API_BASE = "https://anthology-ul35.onrender.com";
+import API_BASE from "../config";
 
 export default function Publication() {
   const [articles, setArticles] = useState([]);

@@ -8,6 +8,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import AppDrawer from './AppDrawer';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import API_BASE from '../config';
 
 
 export default function NavBar() {
@@ -25,7 +26,7 @@ export default function NavBar() {
       }
 
       try {
-        const response = await fetch("https://anthology-ul35.onrender.com/users/me/", {
+        const response = await fetch(`${API_BASE}/users/me/`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -86,12 +87,30 @@ export default function NavBar() {
                   sx={{ color: 'var(--color-secondary)', fontFamily: '"Cardo", serif' }} 
                   onClick={() => navigate('dashboard')}>Dashboard</Button>
             
+            <Button 
+  sx={{ color: 'var(--color-secondary)', fontFamily: '"Cardo", serif' }} 
+  onClick={() => navigate('/feed')}>
+  Feed
+</Button>
+            
             {!loading && (
               user ? (
-                <Typography sx={{ color: 'var(--color-primary)', fontFamily: '"Cardo", serif', fontWeight: 'bold', backgroundColor: "var(--color-secondary)", padding: '4px 8px', borderRadius: '9px' }}>
+                <Typography
+                  onClick={() => navigate('/profile')}
+                  sx={{
+                    color: 'var(--color-primary)',
+                    fontFamily: '"Cardo", serif',
+                    fontWeight: 'bold',
+                    backgroundColor: "var(--color-secondary)",
+                    padding: '4px 8px',
+                    borderRadius: '9px',
+                    cursor: 'pointer',
+                    '&:hover': { opacity: 0.8 }
+                  }}
+                >
                   Hello, {user.username}
                 </Typography>
-              ) : (
+                ) : (
                 <Button variant="contained" 
                         sx={{ backgroundColor: 'var(--color-secondary)', fontFamily: '"Cardo", serif' }}
                         onClick={() => navigate('/login')}>Login/Signup</Button>

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from datetime import datetime, timezone
+from repos.article_repo import add_like, remove_like
 from dependencies.current_user import get_current_user_id
 from cache import save_draft, get_draft, clear_draft
 
@@ -183,3 +184,16 @@ async def delete_article_endpoint(article_id: str, user_id: str = Depends(get_cu
     if not success:
         raise HTTPException(status_code=404, detail="Article not found")
     return {"detail": "Article deleted successfully"}
+
+@router.post("/{article_id}/like")
+async def toggle_like(article_id: str, user_id: str = Depends(get_current_user_id)):
+    article = await get_article_by_id(article_id)
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+    
+    if user_id in (article.likes or []):
+        remove_like(article_id, user_id)
+        return {"liked": False, "likes": len(article.likes) - 1}
+    else:
+        add_like(article_id, user_id)
+        return {"liked": True, "likes": len(article.likes) + 1}

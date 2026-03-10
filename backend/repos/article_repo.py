@@ -36,3 +36,15 @@ def find_articles_by_status(status: str) -> List[ArticleInDB]:
 
 def delete_article_by_id(article_id: str) -> None:
     articles_collection.delete_one({"id": article_id})
+
+def add_like(article_id: str, username: str) -> None:
+    articles_collection.update_one(
+        {"id": article_id},
+        {"$addToSet": {"likes": username}}
+    )
+
+def remove_like(article_id: str, username: str) -> None:
+    articles_collection.update_one(
+        {"id": article_id},
+        {"$pull": {"likes": username}}
+    )

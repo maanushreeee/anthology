@@ -22,10 +22,10 @@ class ArticleInDB(BaseModel):
     updated_at: datetime
     publication_id: str | None = None
     published_at: datetime | None = None
-
     scheduled_publish_at: Optional[datetime] = None
     publication_id: Optional[str] = None
     published_at: Optional[datetime] = None
+    likes: list[str] = []
 
 
 class ArticleResponse(BaseModel):
@@ -39,5 +39,6 @@ class ArticleResponse(BaseModel):
     publication_id: str | None = None
     published_at: datetime | None = None
     scheduled_publish_at: datetime | None = None
+    likes: list[str] = []
 
 

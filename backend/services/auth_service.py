@@ -109,7 +109,9 @@ def signup_user(username: str, password: str, email: str | None = None):
         "email": email,
         "hashed_password": hashed_pwd,
         "disabled": False,
-        "created_at": datetime.now(timezone.utc),
+        "bio": None,
+        "avatar": None,
+        "member_since": datetime.now(timezone.utc),
     }
 
     users_collection.insert_one(user_doc)
@@ -138,4 +140,34 @@ def login_user(username: str, password: str) -> dict:
     return {
         "access_token": access_token,
         "token_type": "bearer",
+    }
+
+def update_user_profile(username: str, bio: str | None, avatar: str | None) -> User:
+    update_data = {"$set": {}}
+    if bio is not None:
+        update_data["$set"]["bio"] = bio
+    if avatar is not None:
+        update_data["$set"]["avatar"] = avatar
+
+    users_collection.update_one({"username": username}, update_data)
+
+    updated = users_collection.find_one({"username": username})
+    return User(
+        username=updated["username"],
+        email=updated.get("email"),
+        disabled=updated.get("disabled"),
+        bio=updated.get("bio"),
+        avatar=updated.get("avatar"),
+        member_since=updated.get("member_since"),
+    )
+
+def get_user_public_profile(username: str):
+    user = users_collection.find_one({"username": username})
+    if not user:
+        return None
+    return {
+        "username": user["username"],
+        "bio": user.get("bio"),
+        "avatar": user.get("avatar"),
+        "member_since": user.get("member_since"),
     }

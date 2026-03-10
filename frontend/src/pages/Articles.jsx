@@ -10,8 +10,8 @@ import {
   Snackbar
 } from "@mui/material";
 import { debounceAsync } from "../utils/debounce";
+import API_BASE from "../config";
 
-const API_BASE = "https://anthology-ul35.onrender.com";
 
 export default function Articles() {
   const [articles, setarticles] = useState([]);

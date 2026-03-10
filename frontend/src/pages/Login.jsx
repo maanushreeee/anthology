@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Box, Button, TextField, Typography, Link } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
+import API_BASE from "../config";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true); // Toggle between login/signup
@@ -16,7 +17,7 @@ export default function AuthPage() {
     setError("");
 
     try {
-      const response = await fetch("https://anthology-ul35.onrender.com/token", {
+      const response = await fetch(`${API_BASE}/token`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -49,7 +50,7 @@ export default function AuthPage() {
     }
 
     try {
-      const response = await fetch("https://anthology-ul35.onrender.com/signup", {
+      const response = await fetch(`${API_BASE}/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -66,7 +67,7 @@ export default function AuthPage() {
       }
 
       // Auto-login after signup with the credentials we just signed up with
-      const loginResponse = await fetch("https://anthology-ul35.onrender.com/token", {
+      const loginResponse = await fetch(`${API_BASE}/token`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
