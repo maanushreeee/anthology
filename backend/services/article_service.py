@@ -144,6 +144,22 @@ async def update_article_title(
 
     return article
 
+async def update_article_tags(article_id: str, tags: list[str]) -> Optional[ArticleInDB]:
+    article = find_article_by_id(article_id)
+    if not article:
+        return None
+
+    update_data = {
+        "tags": tags,
+        "updated_at": datetime.utcnow(),
+    }
+
+    update_article(article_id, update_data)
+
+    article.tags = tags
+    article.updated_at = update_data["updated_at"]
+    return article
+
 async def delete_article(article_id: str) -> bool:
     article = find_article_by_id(article_id)
     if not article:

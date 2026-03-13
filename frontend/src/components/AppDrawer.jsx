@@ -12,6 +12,7 @@ export default function AppDrawer({ open, onClose }) {
   const navigate = useNavigate();
 
   const menuItems = [
+    { label: "Home", path: "/" },
     { label: "Dashboard", path: "/dashboard" },
     { label: "Ideas", path: "/ideas" },
     { label: "Draft Articles", path: "/articles" },

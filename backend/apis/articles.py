@@ -4,38 +4,22 @@ from datetime import datetime, timezone
 from repos.article_repo import add_like, remove_like
 from dependencies.current_user import get_current_user_id
 from cache import save_draft, get_draft, clear_draft
-
-from models.articles import ArticleCreate, ArticleResponse
+from models.articles import ArticleCreate, ArticleResponse, UpdateContent, UpdateTags, UpdateTitle, PublishArticle, AutoSaveDraft
 from services.article_service import (
     complete_article,
     create_article,
-    create_idea,
     delete_article,
     get_article_by_id,
-    list_articles,
     list_articles_by_owner,
     list_articles_by_status,
     publish_article,
-    update_article_status,
     update_article_content,
     update_article_title,
+    update_article_tags
 )
 from services.publication_service import schedule_article
 
 router = APIRouter()
-
-class UpdateContent(BaseModel):
-    new_content: str
-
-class UpdateTitle(BaseModel):
-    new_title: str
-
-class PublishArticle(BaseModel):
-    publish_at: datetime | None = None
-
-class AutoSaveDraft(BaseModel):
-    title: str | None = None
-    content: str | None = None
 
 # Create endpoints
 @router.post("/create-article", response_model=ArticleResponse)
@@ -133,6 +117,21 @@ async def update_title(article_id: str, payload: UpdateTitle, user_id: str = Dep
     await clear_draft(user_id, article_id)
     
     return updated_article
+
+@router.patch("/{article_id}/update-tags", response_model=ArticleResponse)
+async def update_tags(article_id: str, payload: UpdateTags, user_id: str = Depends(get_current_user_id)):
+    article = await get_article_by_id(article_id)
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+    if article.owner_id != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if len(payload.tags) > 3:
+        raise HTTPException(status_code=400, detail="Maximum 3 tags allowed")
+
+    updated = await update_article_content(article_id, article.content)
+    update_article_tags(article_id, {"tags": payload.tags, "updated_at": datetime.utcnow()})
+    article.tags = payload.tags
+    return article
 
 # Auto-save endpoint
 @router.post("/{article_id}/auto-save")

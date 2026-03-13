@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box, Typography, Avatar, Button, IconButton } from "@mui/material";
+import { Box, Typography, Avatar, Button, IconButton, Chip } from "@mui/material";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import { useParams, useNavigate } from "react-router-dom";
@@ -173,6 +173,26 @@ export default function PublicArticle() {
         >
           {article.title}
         </Typography>
+
+        {/* Tags */}
+        {article.tags?.length > 0 && (
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 3 }}>
+            {article.tags.map((tag) => (
+              <Chip
+                key={tag}
+                label={tag}
+                size="small"
+                onClick={() => navigate(`/feed?tag=${tag}`)}
+                sx={{
+                  fontFamily: '"Cardo", serif',
+                  fontSize: "0.8rem",
+                  backgroundColor: "var(--color-primary)",
+                  color: "var(--color-bg-default)",
+                }}
+              />
+            ))}
+          </Box>
+        )}
 
         {/* Content */}
         <Typography

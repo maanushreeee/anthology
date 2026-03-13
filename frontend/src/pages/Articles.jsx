@@ -6,31 +6,37 @@ import {
   ListItemButton,
   TextField,
   Button,
-  Alert, 
-  Snackbar
+  Alert,
+  Snackbar,
+  Chip,
 } from "@mui/material";
 import { debounceAsync } from "../utils/debounce";
 import API_BASE from "../config";
 
+const PREDEFINED_TAGS = [
+  "Technology", "Science", "Opinion", "Travel", "Culture",
+  "Literature", "Politics", "Health", "Business", "Philosophy",
+  "Art", "Education", "Environment", "History", "Fiction",
+];
 
 export default function Articles() {
   const [articles, setarticles] = useState([]);
   const [activeArticle, setActiveArticle] = useState(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [autoSaveStatus, setAutoSaveStatus] = useState(""); // "", "saving", "saved", "error"
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [autoSaveStatus, setAutoSaveStatus] = useState("");
   const [draftWarningOpen, setDraftWarningOpen] = useState(false);
   const [pendingDraft, setPendingDraft] = useState(null);
   const autoSaveFuncRef = useRef(null);
   const [alert, setAlert] = useState({
-  open: false,
-  message: "",
-  severity: "success"
-});
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const token = localStorage.getItem("access_token");
 
-  // Fetch articles
   const fetcharticles = async () => {
     const res = await fetch(`${API_BASE}/articles/my-draft-articles`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -39,10 +45,8 @@ export default function Articles() {
     setarticles(data);
   };
 
-  // Auto-save function
   const performAutoSave = async (articleId, titleToSave, contentToSave) => {
     if (!articleId) return;
-    
     try {
       setAutoSaveStatus("saving");
       const res = await fetch(`${API_BASE}/articles/${articleId}/auto-save`, {
@@ -56,7 +60,6 @@ export default function Articles() {
           content: contentToSave || undefined,
         }),
       });
-
       if (res.ok) {
         setAutoSaveStatus("saved");
       } else {
@@ -64,22 +67,19 @@ export default function Articles() {
         setTimeout(() => setAutoSaveStatus(""), 3000);
       }
     } catch (error) {
-      console.error("Auto-save error:", error);
       setAutoSaveStatus("error");
       setTimeout(() => setAutoSaveStatus(""), 3000);
     }
   };
 
-  // Create debounced auto-save
   useEffect(() => {
     autoSaveFuncRef.current = debounceAsync(async () => {
       if (activeArticle) {
         await performAutoSave(activeArticle.id, title, content);
       }
-    }, 1000); // 1 second debounce
+    }, 1000);
   }, [activeArticle, token]);
 
-  // Auto-save when title or content changes
   useEffect(() => {
     if (activeArticle && autoSaveFuncRef.current) {
       autoSaveFuncRef.current();
@@ -90,7 +90,6 @@ export default function Articles() {
     fetcharticles();
   }, []);
 
-  // Create new article
   const createArticle = async () => {
     const res = await fetch(`${API_BASE}/articles/create-article`, {
       method: "POST",
@@ -98,12 +97,8 @@ export default function Articles() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        title: "Untitled article",
-        content: "",
-      }),
+      body: JSON.stringify({ title: "Untitled article", content: "" }),
     });
-
     const article = await res.json();
     setarticles((prev) => [article, ...prev]);
     selectArticle(article);
@@ -113,13 +108,12 @@ export default function Articles() {
     setActiveArticle(article);
     setTitle(article.title || "");
     setContent(article.content || "");
-    
-    // Check for auto-saved draft
+    setSelectedTags(article.tags || []);
+
     try {
       const res = await fetch(`${API_BASE}/articles/${article.id}/draft-info`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
       if (res.ok) {
         const draftInfo = await res.json();
         if (draftInfo.has_draft && draftInfo.draft) {
@@ -129,6 +123,36 @@ export default function Articles() {
       }
     } catch (error) {
       console.error("Error checking for draft:", error);
+    }
+  };
+
+  const toggleTag = async (tag) => {
+    if (!activeArticle) return;
+
+    let newTags;
+    if (selectedTags.includes(tag)) {
+      newTags = selectedTags.filter((t) => t !== tag);
+    } else {
+      if (selectedTags.length >= 3) {
+        setAlert({ open: true, message: "Maximum 3 tags allowed", severity: "warning" });
+        return;
+      }
+      newTags = [...selectedTags, tag];
+    }
+
+    setSelectedTags(newTags);
+
+    try {
+      await fetch(`${API_BASE}/articles/${activeArticle.id}/update-tags`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ tags: newTags }),
+      });
+    } catch {
+      setAlert({ open: true, message: "Failed to update tags", severity: "error" });
     }
   };
 
@@ -146,86 +170,56 @@ export default function Articles() {
     setPendingDraft(null);
   };
 
-const saveArticle = async () => {
-  if (!activeArticle) return;
-  try {
-    const contentRes = await fetch(
-      `${API_BASE}/articles/${activeArticle.id}/update-content`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ new_content: content }),
-      }
-    );
+  const saveArticle = async () => {
+    if (!activeArticle) return;
+    try {
+      const contentRes = await fetch(
+        `${API_BASE}/articles/${activeArticle.id}/update-content`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ new_content: content }),
+        }
+      );
 
-    const titleRes = await fetch(
-      `${API_BASE}/articles/${activeArticle.id}/update-title`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ new_title: title }),
-      }
-    );
+      const titleRes = await fetch(
+        `${API_BASE}/articles/${activeArticle.id}/update-title`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ new_title: title }),
+        }
+      );
 
-    if (!contentRes.ok || !titleRes.ok) {
-      throw new Error();
+      if (!contentRes.ok || !titleRes.ok) throw new Error();
+
+      setAlert({ open: true, message: "Article saved", severity: "success" });
+      fetcharticles();
+    } catch {
+      setAlert({ open: true, message: "Failed to save article", severity: "error" });
     }
+  };
 
-    setAlert({
-      open: true,
-      message: "Article saved",
-      severity: "success",
-    });
-
-    fetcharticles();
-  } catch (error) {
-    setAlert({
-      open: true,
-      message: "Failed to save article",
-      severity: "error",
-    });
-  }
-};
-
-const convertDrafttoComplete = async () => {
-  if (!activeArticle) return;
-
-  try {
-    const res = await fetch(
-      `${API_BASE}/articles/${activeArticle.id}/complete`,
-      {
+  const convertDrafttoComplete = async () => {
+    if (!activeArticle) return;
+    try {
+      const res = await fetch(`${API_BASE}/articles/${activeArticle.id}/complete`, {
         method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (!res.ok) {
-      throw new Error();
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error();
+      setAlert({ open: true, message: "Article successfully completed", severity: "success" });
+      fetcharticles();
+    } catch {
+      setAlert({ open: true, message: "Failed to complete article", severity: "error" });
     }
-
-    setAlert({
-      open: true,
-      message: "Article successfully completed",
-      severity: "success",
-    });
-
-    fetcharticles();
-  } catch (error) {
-    setAlert({
-      open: true,
-      message: "Failed to complete article",
-      severity: "error",
-    });
-  }
-};
+  };
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
@@ -238,10 +232,7 @@ const convertDrafttoComplete = async () => {
           p: 3,
         }}
       >
-        <Typography
-          variant="h6"
-          sx={{ fontFamily: '"Cardo", serif', mb: 2 }}
-        >
+        <Typography variant="h6" sx={{ fontFamily: '"Cardo", serif', mb: 2 }}>
           articles
         </Typography>
 
@@ -342,13 +333,66 @@ const convertDrafttoComplete = async () => {
               sx={{ flexGrow: 1 }}
             />
 
-            <Box sx={{ mt: 3, alignSelf: "flex-end", display: "flex", gap: 2, alignItems: "center" }}>
+            {/* Tags */}
+            <Box sx={{ mt: 3 }}>
+              <Typography
+                sx={{
+                  fontFamily: '"Cardo", serif',
+                  fontSize: "0.85rem",
+                  opacity: 0.6,
+                  mb: 1,
+                }}
+              >
+                Tags {selectedTags.length}/3
+              </Typography>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                {PREDEFINED_TAGS.map((tag) => (
+                  <Chip
+                    key={tag}
+                    label={tag}
+                    onClick={() => toggleTag(tag)}
+                    sx={{
+                      fontFamily: '"Cardo", serif',
+                      fontSize: "0.8rem",
+                      backgroundColor: selectedTags.includes(tag)
+                        ? "var(--color-primary)"
+                        : "transparent",
+                      color: selectedTags.includes(tag)
+                        ? "var(--color-bg-default)"
+                        : "var(--color-primary)",
+                      border: "1px solid var(--color-primary)",
+                      "&:hover": {
+                        backgroundColor: selectedTags.includes(tag)
+                          ? "var(--color-primary)"
+                          : "rgba(26,54,54,0.08)",
+                      },
+                    }}
+                  />
+                ))}
+              </Box>
+            </Box>
+
+            {/* Bottom Actions */}
+            <Box
+              sx={{
+                mt: 3,
+                alignSelf: "flex-end",
+                display: "flex",
+                gap: 2,
+                alignItems: "center",
+              }}
+            >
               {autoSaveStatus && (
                 <Typography
                   sx={{
                     fontSize: "0.85rem",
                     fontFamily: '"Cardo", serif',
-                    color: autoSaveStatus === "saving" ? "orange" : autoSaveStatus === "saved" ? "green" : "red",
+                    color:
+                      autoSaveStatus === "saving"
+                        ? "orange"
+                        : autoSaveStatus === "saved"
+                        ? "green"
+                        : "red",
                   }}
                 >
                   {autoSaveStatus === "saving" && "🔄 Auto-saving..."}
@@ -356,9 +400,9 @@ const convertDrafttoComplete = async () => {
                   {autoSaveStatus === "error" && "✕ Save failed"}
                 </Typography>
               )}
-              
+
               <Button
-              onClick={convertDrafttoComplete}
+                onClick={convertDrafttoComplete}
                 sx={{
                   alignSelf: "flex-end",
                   mt: 3,
@@ -369,10 +413,11 @@ const convertDrafttoComplete = async () => {
                   fontFamily: '"Cardo", serif',
                   textTransform: "none",
                   "&:hover": { opacity: 0.9 },
-                }}>
+                }}
+              >
                 Complete Article
               </Button>
-              {/* Save */}
+
               <Button
                 onClick={saveArticle}
                 sx={{
@@ -392,16 +437,12 @@ const convertDrafttoComplete = async () => {
             </Box>
           </Box>
         ) : (
-          <Typography
-            sx={{
-              fontFamily: '"Cardo", serif',
-              opacity: 0.6,
-            }}
-          >
+          <Typography sx={{ fontFamily: '"Cardo", serif', opacity: 0.6 }}>
             Select or create an article to begin.
           </Typography>
         )}
       </Box>
+
       <Snackbar
         open={alert.open}
         autoHideDuration={3000}
@@ -415,20 +456,21 @@ const convertDrafttoComplete = async () => {
         </Alert>
       </Snackbar>
 
-      {/* Draft Recovery Snackbar */}
       <Snackbar
         open={draftWarningOpen}
         autoHideDuration={10000}
         onClose={discardDraft}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert 
-          onClose={discardDraft}
-          severity="info"
-          sx={{ width: "100%" }}
-        >
+        <Alert onClose={discardDraft} severity="info" sx={{ width: "100%" }}>
           <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-            <Typography>You have unsaved changes from {pendingDraft?.last_auto_saved_at ? new Date(pendingDraft.last_auto_saved_at).toLocaleTimeString() : "earlier"}. Restore them?</Typography>
+            <Typography>
+              You have unsaved changes from{" "}
+              {pendingDraft?.last_auto_saved_at
+                ? new Date(pendingDraft.last_auto_saved_at).toLocaleTimeString()
+                : "earlier"}
+              . Restore them?
+            </Typography>
             <Button size="small" onClick={restoreDraft} sx={{ color: "info.main" }}>
               Restore
             </Button>

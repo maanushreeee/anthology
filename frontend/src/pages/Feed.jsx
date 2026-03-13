@@ -5,75 +5,91 @@ import {
   Card,
   CardContent,
   Avatar,
+  Button,
+  CircularProgress,
+  Chip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import API_BASE from "../config";
+import NavBar from '../components/NavBar';
+
+
+const LIMIT = 9;
+
+const PREDEFINED_TAGS = [
+  "Technology", "Science", "Opinion", "Travel", "Culture",
+  "Literature", "Politics", "Health", "Business", "Philosophy",
+  "Art", "Education", "Environment", "History",
+];
 
 export default function Feed() {
   const [articles, setArticles] = useState([]);
+  const [skip, setSkip] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [activeTag, setActiveTag] = useState(null);
   const navigate = useNavigate();
-  const token = localStorage.getItem("access_token");
+
+  const fetchArticles = async (skipVal, replace = false, tag = activeTag) => {
+    setLoading(true);
+    try {
+      const tagParam = tag ? `&tag=${encodeURIComponent(tag)}` : "";
+      const res = await fetch(`${API_BASE}/feed?skip=${skipVal}&limit=${LIMIT}${tagParam}`);
+      const data = await res.json();
+      setTotal(data.total);
+      setArticles((prev) => (replace ? data.articles : [...prev, ...data.articles]));
+      setSkip(skipVal + LIMIT);
+    } catch (err) {
+      console.error("Failed to fetch feed", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchFeed = async () => {
-      let currentUsername = null;
+    fetchArticles(0, true, activeTag);
+  }, [activeTag]);
 
-      // Get current user if logged in
-      if (token) {
-        try {
-          const meRes = await fetch(`${API_BASE}/users/me/`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (meRes.ok) {
-            const me = await meRes.json();
-            currentUsername = me.username;
-          }
-        } catch {
-          // not logged in or token expired, show full feed
-        }
-      }
+  const handleTagClick = (tag) => {
+    setActiveTag((prev) => (prev === tag ? null : tag));
+    setSkip(0);
+    setArticles([]);
+  };
 
-      const res = await fetch(`${API_BASE}/feed`);
-      const data = await res.json();
-
-      // Filter out current user's articles
-      const filtered = currentUsername
-        ? data.filter((a) => a.author_username !== currentUsername)
-        : data;
-
-      setArticles(filtered);
-    };
-
-    fetchFeed();
-  }, []);
+  const hasMore = articles.length < total;
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        backgroundColor: "var(--color-bg-default)",
-        p: 6,
-      }}
-    >
-      <Typography
-        variant="h4"
-        sx={{
-          fontFamily: '"Cardo", serif',
-          fontWeight: 700,
-          mb: 6,
-          color: "var(--color-primary)",
-        }}
-      >
-        Feed
-      </Typography>
+    <Box>
+      <NavBar />
+      <Box sx={{ padding: 1 }}>
+        <Typography variant="h5" sx={{ color: 'var(--color-primary)', fontFamily: '"Cardo", serif', textAlign: 'center', fontWeight: 700 }}>
+          Explore the Feed
+        </Typography> 
+        <Box sx={{ minHeight: "100vh", backgroundColor: "var(--color-bg-default)", p: 6 }}>
 
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-          gap: 3,
-        }}
-      >
+      {/* Tag Filter Bar */}
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 3 }}>
+        {PREDEFINED_TAGS.map((tag) => (
+          <Chip
+            key={tag}
+            label={tag}
+            onClick={() => handleTagClick(tag)}
+            sx={{
+              fontFamily: '"Cardo", serif',
+              fontSize: "0.8rem",
+              backgroundColor: activeTag === tag ? "var(--color-primary)" : "transparent",
+              color: activeTag === tag ? "var(--color-bg-default)" : "var(--color-primary)",
+              border: "1px solid var(--color-primary)",
+              "&:hover": {
+                backgroundColor: activeTag === tag ? "var(--color-primary)" : "rgba(26,54,54,0.08)",
+              },
+            }}
+          />
+        ))}
+      </Box>
+
+      {/* Articles Grid */}
+      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 3 }}>
         {articles.map((article) => (
           <Card
             key={article.id}
@@ -87,7 +103,14 @@ export default function Feed() {
             }}
             onClick={() => navigate(`/read/${article.id}`)}
           >
-            <CardContent>
+            <CardContent
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                height: "100%",
+                p: 3,
+              }}
+            >
               {/* Author */}
               <Box
                 sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}
@@ -134,13 +157,14 @@ export default function Feed() {
                 {article.title || "Untitled"}
               </Typography>
 
-              {/* Snippet */}
+              {/* Snippet — flexGrow pushes everything below to bottom */}
               <Typography
                 sx={{
                   fontFamily: '"Cardo", serif',
                   opacity: 0.7,
                   fontSize: "0.95rem",
                   lineHeight: 1.6,
+                  flexGrow: 1,
                   mb: 2,
                 }}
               >
@@ -148,7 +172,29 @@ export default function Feed() {
                 {article.content?.length > 120 && "..."}
               </Typography>
 
-              {/* Published date */}
+              {/* Tags — always rendered, minHeight keeps spacing consistent */}
+              <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", minHeight: 24, mb: 1.5 }}>
+                {article.tags?.map((tag) => (
+                  <Chip
+                    key={tag}
+                    label={tag}
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTagClick(tag);
+                    }}
+                    sx={{
+                      fontFamily: '"Cardo", serif',
+                      fontSize: "0.7rem",
+                      backgroundColor: "var(--color-primary)",
+                      color: "var(--color-bg-default)",
+                      height: 20,
+                    }}
+                  />
+                ))}
+              </Box>
+
+              {/* Date — always at bottom */}
               <Typography
                 variant="caption"
                 sx={{
@@ -169,7 +215,7 @@ export default function Feed() {
           </Card>
         ))}
 
-        {articles.length === 0 && (
+        {articles.length === 0 && !loading && (
           <Typography
             sx={{
               fontFamily: '"Cardo", serif',
@@ -179,9 +225,37 @@ export default function Feed() {
               mt: 10,
             }}
           >
-            No articles published yet.
+            {activeTag ? `No articles found for "${activeTag}".` : "No articles published yet."}
           </Typography>
         )}
+      </Box>
+
+      {/* Load More */}
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}>
+        {loading && <CircularProgress sx={{ color: "var(--color-primary)" }} />}
+        {!loading && hasMore && (
+          <Button
+            onClick={() => fetchArticles(skip)}
+            variant="outlined"
+            sx={{
+              fontFamily: '"Cardo", serif',
+              textTransform: "none",
+              color: "var(--color-primary)",
+              borderColor: "var(--color-primary)",
+              borderRadius: 3,
+              px: 4,
+            }}
+          >
+            Load More
+          </Button>
+        )}
+        {!loading && !hasMore && articles.length > 0 && (
+          <Typography sx={{ fontFamily: '"Cardo", serif', opacity: 0.4, fontSize: "0.9rem" }}>
+            You've reached the end.
+          </Typography>
+        )}
+      </Box>
+    </Box>
       </Box>
     </Box>
   );
