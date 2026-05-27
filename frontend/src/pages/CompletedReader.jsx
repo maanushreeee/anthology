@@ -120,6 +120,10 @@ export default function CompletedReader() {
       const res = await fetch(`${API_BASE}/articles/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) {
+        console.error(`Failed to fetch article: ${res.status}`);
+        return;
+      }
       const data = await res.json();
       setArticle(data);
     };

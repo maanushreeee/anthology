@@ -34,7 +34,12 @@ export default function Profile() {
           fetch(`${API_BASE}/ideas`, { headers: { Authorization: `Bearer ${token}` } }),
           fetch(`${API_BASE}/articles/my-completed-articles`, { headers: { Authorization: `Bearer ${token}` } }),
           fetch(`${API_BASE}/articles/my-published-articles`, { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
+        ]
+        );
+
+        if (!profileRes.ok || !draftsRes.ok || !ideasRes.ok || !completedRes.ok || !publishedRes.ok) {
+          throw new Error("Failed to fetch profile data");
+        }
 
         const profileData = await profileRes.json();
         setProfile(profileData);

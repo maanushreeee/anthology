@@ -25,10 +25,12 @@ export default function Articles() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedTags, setSelectedTags] = useState([]);
+  const [coverImage, setCoverImage] = useState(null);
   const [autoSaveStatus, setAutoSaveStatus] = useState("");
   const [draftWarningOpen, setDraftWarningOpen] = useState(false);
   const [pendingDraft, setPendingDraft] = useState(null);
   const autoSaveFuncRef = useRef(null);
+  const coverImageInputRef = useRef(null);
   const [alert, setAlert] = useState({
     open: false,
     message: "",
@@ -41,6 +43,10 @@ export default function Articles() {
     const res = await fetch(`${API_BASE}/articles/my-draft-articles`, {
       headers: { Authorization: `Bearer ${token}` },
     });
+    if (!res.ok) {
+      console.error(`Failed to fetch articles: ${res.status}`);
+      return;
+    }
     const data = await res.json();
     setarticles(data);
   };
@@ -99,6 +105,10 @@ export default function Articles() {
       },
       body: JSON.stringify({ title: "Untitled article", content: "" }),
     });
+    if (!res.ok) {
+      console.error(`Failed to create article: ${res.status}`);
+      return;
+    }
     const article = await res.json();
     setarticles((prev) => [article, ...prev]);
     selectArticle(article);
@@ -109,6 +119,7 @@ export default function Articles() {
     setTitle(article.title || "");
     setContent(article.content || "");
     setSelectedTags(article.tags || []);
+    setCoverImage(article.cover_image || null);
 
     try {
       const res = await fetch(`${API_BASE}/articles/${article.id}/draft-info`, {
@@ -153,6 +164,69 @@ export default function Articles() {
       });
     } catch {
       setAlert({ open: true, message: "Failed to update tags", severity: "error" });
+    }
+  };
+
+  const handleCoverImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = (ev) => {
+      img.onload = async () => {
+        const maxW = 1200;
+        const maxH = 600;
+        let w = img.width;
+        let h = img.height;
+
+        if (w > maxW || h > maxH) {
+          const ratio = Math.min(maxW / w, maxH / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+
+        canvas.width = w;
+        canvas.height = h;
+        ctx.drawImage(img, 0, 0, w, h);
+        const base64 = canvas.toDataURL("image/jpeg", 0.85);
+
+        setCoverImage(base64);
+
+        try {
+          await fetch(`${API_BASE}/articles/${activeArticle.id}/cover-image`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ cover_image: base64 }),
+          });
+        } catch {
+          setAlert({ open: true, message: "Failed to save cover image", severity: "error" });
+        }
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeCoverImage = async () => {
+    setCoverImage(null);
+    try {
+      await fetch(`${API_BASE}/articles/${activeArticle.id}/cover-image`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ cover_image: null }),
+      });
+    } catch {
+      setAlert({ open: true, message: "Failed to remove cover image", severity: "error" });
     }
   };
 
@@ -292,148 +366,219 @@ export default function Articles() {
               minHeight: "70vh",
               backgroundColor: "var(--color-bg-default)",
               borderRadius: "28px",
-              p: 4,
+              overflow: "hidden",
               display: "flex",
               flexDirection: "column",
               boxShadow: "0 10px 40px rgba(0,0,0,0.08)",
             }}
           >
-            {/* Title */}
-            <TextField
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Untitled article"
-              variant="standard"
-              InputProps={{
-                disableUnderline: true,
-                sx: {
-                  fontFamily: '"Cardo", serif',
-                  fontSize: "1.6rem",
-                  fontWeight: 600,
-                  mb: 2,
-                },
-              }}
+            {/* Cover Image Area */}
+            <input
+              type="file"
+              accept="image/*"
+              ref={coverImageInputRef}
+              style={{ display: "none" }}
+              onChange={handleCoverImageUpload}
             />
 
-            {/* Content */}
-            <TextField
-              multiline
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Start writing…"
-              variant="standard"
-              InputProps={{
-                disableUnderline: true,
-                sx: {
-                  fontFamily: '"Cardo", serif',
-                  fontSize: "1.1rem",
-                  lineHeight: 1.8,
-                },
-              }}
-              sx={{ flexGrow: 1 }}
-            />
-
-            {/* Tags */}
-            <Box sx={{ mt: 3 }}>
-              <Typography
-                sx={{
-                  fontFamily: '"Cardo", serif',
-                  fontSize: "0.85rem",
-                  opacity: 0.6,
-                  mb: 1,
-                }}
-              >
-                Tags {selectedTags.length}/3
-              </Typography>
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                {PREDEFINED_TAGS.map((tag) => (
-                  <Chip
-                    key={tag}
-                    label={tag}
-                    onClick={() => toggleTag(tag)}
-                    sx={{
-                      fontFamily: '"Cardo", serif',
-                      fontSize: "0.8rem",
-                      backgroundColor: selectedTags.includes(tag)
-                        ? "var(--color-primary)"
-                        : "transparent",
-                      color: selectedTags.includes(tag)
-                        ? "var(--color-bg-default)"
-                        : "var(--color-primary)",
-                      border: "1px solid var(--color-primary)",
-                      "&:hover": {
-                        backgroundColor: selectedTags.includes(tag)
-                          ? "var(--color-primary)"
-                          : "rgba(26,54,54,0.08)",
-                      },
-                    }}
-                  />
-                ))}
-              </Box>
-            </Box>
-
-            {/* Bottom Actions */}
-            <Box
-              sx={{
-                mt: 3,
-                alignSelf: "flex-end",
-                display: "flex",
-                gap: 2,
-                alignItems: "center",
-              }}
-            >
-              {autoSaveStatus && (
-                <Typography
+            {coverImage ? (
+              <Box sx={{ position: "relative" }}>
+                <Box
+                  component="img"
+                  src={coverImage}
                   sx={{
-                    fontSize: "0.85rem",
+                    width: "100%",
+                    height: 220,
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+                <Button
+                  size="small"
+                  onClick={removeCoverImage}
+                  sx={{
+                    position: "absolute",
+                    top: 10,
+                    right: 10,
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    color: "white",
                     fontFamily: '"Cardo", serif',
-                    color:
-                      autoSaveStatus === "saving"
-                        ? "orange"
-                        : autoSaveStatus === "saved"
-                        ? "green"
-                        : "red",
+                    textTransform: "none",
+                    borderRadius: 2,
+                    fontSize: "0.75rem",
+                    "&:hover": { backgroundColor: "rgba(0,0,0,0.7)" },
                   }}
                 >
-                  {autoSaveStatus === "saving" && "🔄 Auto-saving..."}
-                  {autoSaveStatus === "saved" && "✓ Saved"}
-                  {autoSaveStatus === "error" && "✕ Save failed"}
+                  Remove Cover
+                </Button>
+              </Box>
+            ) : (
+              <Box
+                onClick={() => coverImageInputRef.current.click()}
+                sx={{
+                  width: "100%",
+                  height: 80,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderBottom: "1px dashed rgba(26,54,54,0.2)",
+                  cursor: "pointer",
+                  backgroundColor: "rgba(26,54,54,0.03)",
+                  "&:hover": { backgroundColor: "rgba(26,54,54,0.06)" },
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontFamily: '"Cardo", serif',
+                    fontSize: "0.85rem",
+                    opacity: 0.4,
+                    color: "var(--color-primary)",
+                  }}
+                >
+                  + Add cover image
                 </Typography>
-              )}
+              </Box>
+            )}
 
-              <Button
-                onClick={convertDrafttoComplete}
+            {/* Editor Content */}
+            <Box sx={{ p: 4, display: "flex", flexDirection: "column", flexGrow: 1 }}>
+              {/* Title */}
+              <TextField
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Untitled article"
+                variant="standard"
+                InputProps={{
+                  disableUnderline: true,
+                  sx: {
+                    fontFamily: '"Cardo", serif',
+                    fontSize: "1.6rem",
+                    fontWeight: 600,
+                    mb: 2,
+                  },
+                }}
+              />
+
+              {/* Content */}
+              <TextField
+                multiline
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Start writing…"
+                variant="standard"
+                InputProps={{
+                  disableUnderline: true,
+                  sx: {
+                    fontFamily: '"Cardo", serif',
+                    fontSize: "1.1rem",
+                    lineHeight: 1.8,
+                  },
+                }}
+                sx={{ flexGrow: 1 }}
+              />
+
+              {/* Tags */}
+              <Box sx={{ mt: 3 }}>
+                <Typography
+                  sx={{
+                    fontFamily: '"Cardo", serif',
+                    fontSize: "0.85rem",
+                    opacity: 0.6,
+                    mb: 1,
+                  }}
+                >
+                  Tags {selectedTags.length}/3
+                </Typography>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                  {PREDEFINED_TAGS.map((tag) => (
+                    <Chip
+                      key={tag}
+                      label={tag}
+                      onClick={() => toggleTag(tag)}
+                      sx={{
+                        fontFamily: '"Cardo", serif',
+                        fontSize: "0.8rem",
+                        backgroundColor: selectedTags.includes(tag)
+                          ? "var(--color-primary)"
+                          : "transparent",
+                        color: selectedTags.includes(tag)
+                          ? "var(--color-bg-default)"
+                          : "var(--color-primary)",
+                        border: "1px solid var(--color-primary)",
+                        "&:hover": {
+                          backgroundColor: selectedTags.includes(tag)
+                            ? "var(--color-primary)"
+                            : "rgba(26,54,54,0.08)",
+                        },
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+
+              {/* Bottom Actions */}
+              <Box
                 sx={{
-                  alignSelf: "flex-end",
                   mt: 3,
-                  px: 4,
-                  borderRadius: 3,
-                  backgroundColor: "var(--color-primary)",
-                  color: "white",
-                  fontFamily: '"Cardo", serif',
-                  textTransform: "none",
-                  "&:hover": { opacity: 0.9 },
+                  alignSelf: "flex-end",
+                  display: "flex",
+                  gap: 2,
+                  alignItems: "center",
                 }}
               >
-                Complete Article
-              </Button>
+                {autoSaveStatus && (
+                  <Typography
+                    sx={{
+                      fontSize: "0.85rem",
+                      fontFamily: '"Cardo", serif',
+                      color:
+                        autoSaveStatus === "saving"
+                          ? "orange"
+                          : autoSaveStatus === "saved"
+                          ? "green"
+                          : "red",
+                    }}
+                  >
+                    {autoSaveStatus === "saving" && "🔄 Auto-saving..."}
+                    {autoSaveStatus === "saved" && "✓ Saved"}
+                    {autoSaveStatus === "error" && "✕ Save failed"}
+                  </Typography>
+                )}
 
-              <Button
-                onClick={saveArticle}
-                sx={{
-                  alignSelf: "flex-end",
-                  mt: 3,
-                  px: 4,
-                  borderRadius: 3,
-                  backgroundColor: "var(--color-primary)",
-                  color: "white",
-                  fontFamily: '"Cardo", serif',
-                  textTransform: "none",
-                  "&:hover": { opacity: 0.9 },
-                }}
-              >
-                Save
-              </Button>
+                <Button
+                  onClick={convertDrafttoComplete}
+                  sx={{
+                    alignSelf: "flex-end",
+                    mt: 3,
+                    px: 4,
+                    borderRadius: 3,
+                    backgroundColor: "var(--color-primary)",
+                    color: "white",
+                    fontFamily: '"Cardo", serif',
+                    textTransform: "none",
+                    "&:hover": { opacity: 0.9 },
+                  }}
+                >
+                  Complete Article
+                </Button>
+
+                <Button
+                  onClick={saveArticle}
+                  sx={{
+                    alignSelf: "flex-end",
+                    mt: 3,
+                    px: 4,
+                    borderRadius: 3,
+                    backgroundColor: "var(--color-primary)",
+                    color: "white",
+                    fontFamily: '"Cardo", serif',
+                    textTransform: "none",
+                    "&:hover": { opacity: 0.9 },
+                  }}
+                >
+                  Save
+                </Button>
+              </Box>
             </Box>
           </Box>
         ) : (

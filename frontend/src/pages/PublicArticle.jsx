@@ -17,11 +17,14 @@ export default function PublicArticle() {
   useEffect(() => {
     const fetchArticle = async () => {
       const res = await fetch(`${API_BASE}/feed/${id}`);
+      if (!res.ok) {
+        console.error(`Failed to fetch article: ${res.status}`);
+        return;
+      }
       const data = await res.json();
       setArticle(data);
       setLikeCount(data.likes?.length || 0);
 
-      // Check if current user has liked
       if (token) {
         const meRes = await fetch(`${API_BASE}/users/me/`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -85,127 +88,104 @@ export default function PublicArticle() {
       <Box
         sx={{
           width: "100%",
-          maxWidth: 800,
+          maxWidth: 1000,
           margin: "0 auto",
           backgroundColor: "var(--color-secondary)",
           borderRadius: "20px",
-          p: 5,
+          overflow: "hidden",
           boxShadow: "0 10px 40px rgba(0,0,0,0.08)",
         }}
       >
-        {/* Author + Like */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            mb: 4,
-          }}
-        >
+        {/* Cover Image */}
+        {article.cover_image && (
           <Box
-            sx={{ display: "flex", alignItems: "center", gap: 1.5, cursor: "pointer" }}
-            onClick={() => navigate(`/user/${article.author_username}`)}
-          >
-            <Avatar
-              src={article.author_avatar || undefined}
-              sx={{
-                width: 36,
-                height: 36,
-                fontSize: "0.9rem",
-                backgroundColor: "var(--color-primary)",
-                fontFamily: '"Cardo", serif',
-              }}
+            component="img"
+            src={article.cover_image}
+            sx={{ width: "100%", height: 340, objectFit: "cover", display: "block" }}
+          />
+        )}
+
+        <Box sx={{ p: 5 }}>
+          {/* Author + Like */}
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 4 }}>
+            <Box
+              sx={{ display: "flex", alignItems: "center", gap: 1.5, cursor: "pointer" }}
+              onClick={() => navigate(`/user/${article.author_username}`)}
             >
-              {!article.author_avatar && article.author_username?.[0]?.toUpperCase()}
-            </Avatar>
-            <Box>
-              <Typography
+              <Avatar
+                src={article.author_avatar || undefined}
                 sx={{
+                  width: 36, height: 36, fontSize: "0.9rem",
+                  backgroundColor: "var(--color-primary)",
                   fontFamily: '"Cardo", serif',
-                  fontWeight: 600,
-                  fontSize: "0.95rem",
-                  color: "var(--color-primary)",
-                  "&:hover": { textDecoration: "underline" },
                 }}
               >
-                {article.author_username}
-              </Typography>
-              <Typography
-                sx={{ fontFamily: '"Cardo", serif', fontSize: "0.8rem", opacity: 0.5 }}
-              >
-                {article.published_at
-                  ? new Date(article.published_at).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })
-                  : ""}
+                {!article.author_avatar && article.author_username?.[0]?.toUpperCase()}
+              </Avatar>
+              <Box>
+                <Typography
+                  sx={{
+                    fontFamily: '"Cardo", serif', fontWeight: 600, fontSize: "0.95rem",
+                    color: "var(--color-primary)", "&:hover": { textDecoration: "underline" },
+                  }}
+                >
+                  {article.author_username}
+                </Typography>
+                <Typography sx={{ fontFamily: '"Cardo", serif', fontSize: "0.8rem", opacity: 0.5 }}>
+                  {article.published_at
+                    ? new Date(article.published_at).toLocaleDateString("en-US", {
+                        year: "numeric", month: "long", day: "numeric",
+                      })
+                    : ""}
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Like Button */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <IconButton onClick={handleLike} sx={{ color: "var(--color-primary)" }}>
+                {liked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+              </IconButton>
+              <Typography sx={{ fontFamily: '"Cardo", serif', fontSize: "0.9rem", color: "var(--color-primary)" }}>
+                {likeCount}
               </Typography>
             </Box>
           </Box>
 
-          {/* Like Button */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <IconButton onClick={handleLike} sx={{ color: "var(--color-primary)" }}>
-              {liked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-            </IconButton>
-            <Typography
-              sx={{
-                fontFamily: '"Cardo", serif',
-                fontSize: "0.9rem",
-                color: "var(--color-primary)",
-              }}
-            >
-              {likeCount}
-            </Typography>
-          </Box>
+          {/* Title */}
+          <Typography
+            variant="h4"
+            sx={{ fontFamily: '"Cardo", serif', fontWeight: 700, mb: 3, color: "var(--color-primary)" }}
+          >
+            {article.title}
+          </Typography>
+
+          {/* Tags */}
+          {article.tags?.length > 0 && (
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 4 }}>
+              {article.tags.map((tag) => (
+                <Chip
+                  key={tag} label={tag} size="small"
+                  onClick={() => navigate(`/feed?tag=${tag}`)}
+                  sx={{
+                    fontFamily: '"Cardo", serif', fontSize: "0.8rem",
+                    backgroundColor: "var(--color-primary)", color: "var(--color-bg-default)",
+                  }}
+                />
+              ))}
+            </Box>
+          )}
+
+          {/* Content */}
+          <Typography
+            sx={{
+              fontFamily: '"Cardo", serif', fontSize: "1.1rem",
+              lineHeight: 1.9, whiteSpace: "pre-wrap", opacity: 0.9,
+            }}
+          >
+            {article.content}
+          </Typography>
         </Box>
-
-        {/* Title */}
-        <Typography
-          variant="h4"
-          sx={{
-            fontFamily: '"Cardo", serif',
-            fontWeight: 700,
-            mb: 4,
-            color: "var(--color-primary)",
-          }}
-        >
-          {article.title}
-        </Typography>
-
-        {/* Tags */}
-        {article.tags?.length > 0 && (
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 3 }}>
-            {article.tags.map((tag) => (
-              <Chip
-                key={tag}
-                label={tag}
-                size="small"
-                onClick={() => navigate(`/feed?tag=${tag}`)}
-                sx={{
-                  fontFamily: '"Cardo", serif',
-                  fontSize: "0.8rem",
-                  backgroundColor: "var(--color-primary)",
-                  color: "var(--color-bg-default)",
-                }}
-              />
-            ))}
-          </Box>
-        )}
-
-        {/* Content */}
-        <Typography
-          sx={{
-            fontFamily: '"Cardo", serif',
-            fontSize: "1.1rem",
-            lineHeight: 1.9,
-            whiteSpace: "pre-wrap",
-            opacity: 0.9,
-          }}
-        >
-          {article.content}
-        </Typography>
       </Box>
     </Box>
   );

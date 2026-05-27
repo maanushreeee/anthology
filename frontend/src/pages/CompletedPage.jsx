@@ -24,6 +24,11 @@ export default function CompletedPage() {
         }
       );
 
+      if (!res.ok) {
+        console.error(`Failed to fetch completed articles: ${res.status}`);
+        return;
+      }
+
       const data = await res.json();
       setCompleted(data);
     };

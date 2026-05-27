@@ -160,6 +160,22 @@ async def update_article_tags(article_id: str, tags: list[str]) -> Optional[Arti
     article.updated_at = update_data["updated_at"]
     return article
 
+async def update_article_cover_image(article_id: str, cover_image: str | None) -> Optional[ArticleInDB]:
+    article = find_article_by_id(article_id)
+    if not article:
+        return None
+
+    update_data = {
+        "cover_image": cover_image,
+        "updated_at": datetime.utcnow(),
+    }
+
+    update_article(article_id, update_data)
+
+    article.cover_image = cover_image
+    article.updated_at = update_data["updated_at"]
+    return article
+
 async def delete_article(article_id: str) -> bool:
     article = find_article_by_id(article_id)
     if not article:

@@ -7,6 +7,7 @@ from apis.publications import router as publications_router
 from apis.feed import router as feed_router
 from scheduler import scheduler, publish_scheduled_articles
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -34,3 +35,6 @@ app.include_router(ideas_router, prefix="/ideas", tags=["Ideas"])
 app.include_router(auth_router, tags=["Authentication"])
 app.include_router(publications_router, prefix="/publications", tags=["Publications"])
 app.include_router(feed_router, prefix="/feed", tags=["Feed"])
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

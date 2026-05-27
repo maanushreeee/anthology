@@ -11,10 +11,8 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import API_BASE from "../config";
-import NavBar from '../components/NavBar';
 
-
-const LIMIT = 9;
+const LIMIT = 10;
 
 const PREDEFINED_TAGS = [
   "Technology", "Science", "Opinion", "Travel", "Culture",
@@ -29,12 +27,17 @@ export default function Feed() {
   const [loading, setLoading] = useState(false);
   const [activeTag, setActiveTag] = useState(null);
   const navigate = useNavigate();
+  const token = localStorage.getItem("access_token");
 
   const fetchArticles = async (skipVal, replace = false, tag = activeTag) => {
     setLoading(true);
     try {
       const tagParam = tag ? `&tag=${encodeURIComponent(tag)}` : "";
-      const res = await fetch(`${API_BASE}/feed?skip=${skipVal}&limit=${LIMIT}${tagParam}`);
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`${API_BASE}/feed?skip=${skipVal}&limit=${LIMIT}${tagParam}`, { headers });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
       const data = await res.json();
       setTotal(data.total);
       setArticles((prev) => (replace ? data.articles : [...prev, ...data.articles]));
@@ -59,16 +62,16 @@ export default function Feed() {
   const hasMore = articles.length < total;
 
   return (
-    <Box>
-      <NavBar />
-      <Box sx={{ padding: 1 }}>
-        <Typography variant="h5" sx={{ color: 'var(--color-primary)', fontFamily: '"Cardo", serif', textAlign: 'center', fontWeight: 700 }}>
-          Explore the Feed
-        </Typography> 
-        <Box sx={{ minHeight: "100vh", backgroundColor: "var(--color-bg-default)", p: 6 }}>
+    <Box sx={{ minHeight: "100vh", backgroundColor: "var(--color-bg-default)", p: 6 }}>
+      <Typography
+        variant="h4"
+        sx={{ fontFamily: '"Cardo", serif', fontWeight: 700, mb: 4, color: "var(--color-primary)" }}
+      >
+        Feed
+      </Typography>
 
       {/* Tag Filter Bar */}
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 3 }}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 5 }}>
         {PREDEFINED_TAGS.map((tag) => (
           <Chip
             key={tag}
@@ -99,18 +102,21 @@ export default function Feed() {
               boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
               transition: "0.2s",
               cursor: "pointer",
+              overflow: "hidden",
               "&:hover": { transform: "translateY(-4px)" },
             }}
             onClick={() => navigate(`/read/${article.id}`)}
           >
-            <CardContent
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                height: "100%",
-                p: 3,
-              }}
-            >
+            {/* Cover Image */}
+            {article.cover_image && (
+              <Box
+                component="img"
+                src={article.cover_image}
+                sx={{ width: "100%", height: 160, objectFit: "cover", display: "block" }}
+              />
+            )}
+
+            <CardContent sx={{ display: "flex", flexDirection: "column", height: "100%", p: 3 }}>
               {/* Author */}
               <Box
                 sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}
@@ -122,9 +128,7 @@ export default function Feed() {
                 <Avatar
                   src={article.author_avatar || undefined}
                   sx={{
-                    width: 28,
-                    height: 28,
-                    fontSize: "0.8rem",
+                    width: 28, height: 28, fontSize: "0.8rem",
                     backgroundColor: "var(--color-primary)",
                     fontFamily: '"Cardo", serif',
                   }}
@@ -133,10 +137,8 @@ export default function Feed() {
                 </Avatar>
                 <Typography
                   sx={{
-                    fontFamily: '"Cardo", serif',
-                    fontSize: "0.85rem",
-                    color: "var(--color-primary)",
-                    fontWeight: 600,
+                    fontFamily: '"Cardo", serif', fontSize: "0.85rem",
+                    color: "var(--color-primary)", fontWeight: 600,
                     "&:hover": { textDecoration: "underline" },
                   }}
                 >
@@ -146,69 +148,37 @@ export default function Feed() {
 
               {/* Title */}
               <Typography
-                sx={{
-                  fontFamily: '"Cardo", serif',
-                  fontWeight: 700,
-                  fontSize: "1.2rem",
-                  mb: 1,
-                  color: "var(--color-primary)",
-                }}
+                sx={{ fontFamily: '"Cardo", serif', fontWeight: 700, fontSize: "1.2rem", mb: 1, color: "var(--color-primary)" }}
               >
                 {article.title || "Untitled"}
               </Typography>
 
-              {/* Snippet — flexGrow pushes everything below to bottom */}
+              {/* Snippet */}
               <Typography
-                sx={{
-                  fontFamily: '"Cardo", serif',
-                  opacity: 0.7,
-                  fontSize: "0.95rem",
-                  lineHeight: 1.6,
-                  flexGrow: 1,
-                  mb: 2,
-                }}
+                sx={{ fontFamily: '"Cardo", serif', opacity: 0.7, fontSize: "0.95rem", lineHeight: 1.6, flexGrow: 1, mb: 2 }}
               >
                 {(article.content || "").slice(0, 120)}
                 {article.content?.length > 120 && "..."}
               </Typography>
 
-              {/* Tags — always rendered, minHeight keeps spacing consistent */}
+              {/* Tags */}
               <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", minHeight: 24, mb: 1.5 }}>
                 {article.tags?.map((tag) => (
                   <Chip
-                    key={tag}
-                    label={tag}
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleTagClick(tag);
-                    }}
+                    key={tag} label={tag} size="small"
+                    onClick={(e) => { e.stopPropagation(); handleTagClick(tag); }}
                     sx={{
-                      fontFamily: '"Cardo", serif',
-                      fontSize: "0.7rem",
-                      backgroundColor: "var(--color-primary)",
-                      color: "var(--color-bg-default)",
-                      height: 20,
+                      fontFamily: '"Cardo", serif', fontSize: "0.7rem",
+                      backgroundColor: "var(--color-primary)", color: "var(--color-bg-default)", height: 20,
                     }}
                   />
                 ))}
               </Box>
 
-              {/* Date — always at bottom */}
-              <Typography
-                variant="caption"
-                sx={{
-                  fontFamily: '"Cardo", serif',
-                  color: "var(--color-primary)",
-                  opacity: 0.5,
-                }}
-              >
+              {/* Date */}
+              <Typography variant="caption" sx={{ fontFamily: '"Cardo", serif', color: "var(--color-primary)", opacity: 0.5 }}>
                 {article.published_at
-                  ? new Date(article.published_at).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })
+                  ? new Date(article.published_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
                   : ""}
               </Typography>
             </CardContent>
@@ -216,15 +186,7 @@ export default function Feed() {
         ))}
 
         {articles.length === 0 && !loading && (
-          <Typography
-            sx={{
-              fontFamily: '"Cardo", serif',
-              opacity: 0.4,
-              gridColumn: "1 / -1",
-              textAlign: "center",
-              mt: 10,
-            }}
-          >
+          <Typography sx={{ fontFamily: '"Cardo", serif', opacity: 0.4, gridColumn: "1 / -1", textAlign: "center", mt: 10 }}>
             {activeTag ? `No articles found for "${activeTag}".` : "No articles published yet."}
           </Typography>
         )}
@@ -234,17 +196,8 @@ export default function Feed() {
       <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}>
         {loading && <CircularProgress sx={{ color: "var(--color-primary)" }} />}
         {!loading && hasMore && (
-          <Button
-            onClick={() => fetchArticles(skip)}
-            variant="outlined"
-            sx={{
-              fontFamily: '"Cardo", serif',
-              textTransform: "none",
-              color: "var(--color-primary)",
-              borderColor: "var(--color-primary)",
-              borderRadius: 3,
-              px: 4,
-            }}
+          <Button onClick={() => fetchArticles(skip)} variant="outlined"
+            sx={{ fontFamily: '"Cardo", serif', textTransform: "none", color: "var(--color-primary)", borderColor: "var(--color-primary)", borderRadius: 3, px: 4 }}
           >
             Load More
           </Button>
@@ -254,8 +207,6 @@ export default function Feed() {
             You've reached the end.
           </Typography>
         )}
-      </Box>
-    </Box>
       </Box>
     </Box>
   );

@@ -29,6 +29,10 @@ export default function Ideas() {
     const res = await fetch(`${API_BASE}/ideas`, {
       headers: { Authorization: `Bearer ${token}` },
     });
+    if (!res.ok) {
+      console.error(`Failed to fetch ideas: ${res.status}`);
+      return;
+    }
     const data = await res.json();
     setIdeas(data);
   };
@@ -50,6 +54,11 @@ export default function Ideas() {
         content: "",
       }),
     });
+
+    if (!res.ok) {
+      console.error(`Failed to create idea: ${res.status}`);
+      return;
+    }
 
     const idea = await res.json();
     setIdeas((prev) => [idea, ...prev]);

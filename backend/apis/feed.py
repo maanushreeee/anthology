@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from repos.article_repo import find_articles_by_status, find_article_by_id
 from db import users_collection
-from dependencies.current_user import get_optional_user_id
+from dependencies.current_user import get_current_user_id
 
 router = APIRouter()
 
@@ -16,6 +16,7 @@ def attach_author(article) -> dict:
         "author_avatar": user.get("avatar") if user else None,
         "likes": article.likes or [],
         "tags": article.tags or [],
+        "cover_image": article.cover_image or None,
     }
 
 @router.get("/")
@@ -23,8 +24,9 @@ async def get_feed(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=9, ge=1, le=50),
     tag: str | None = Query(default=None),
-    current_username: str | None = Depends(get_optional_user_id),
+    current_username: str | None = Depends(get_current_user_id),
 ):
+    print(f"current_username from token: {current_username}")
     articles = find_articles_by_status("published")
     print(f"Total published articles in DB: {len(articles)}")
 

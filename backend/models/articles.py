@@ -27,6 +27,7 @@ class ArticleInDB(BaseModel):
     published_at: Optional[datetime] = None
     likes: list[str] = []
     tags: list[str] = []
+    cover_image: str | None = None
 
 
 class ArticleResponse(BaseModel):
@@ -42,6 +43,7 @@ class ArticleResponse(BaseModel):
     scheduled_publish_at: datetime | None = None
     likes: list[str] = []
     tags: list[str] = []
+    cover_image: str | None = None
 
 class UpdateContent(BaseModel):
     new_content: str
@@ -59,3 +61,5 @@ class AutoSaveDraft(BaseModel):
 class UpdateTags(BaseModel):
     tags: list[str]
 
+class UpdateCoverImage(BaseModel):
+    cover_image: str | None = None

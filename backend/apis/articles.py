@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from repos.article_repo import add_like, remove_like
 from dependencies.current_user import get_current_user_id
 from cache import save_draft, get_draft, clear_draft
-from models.articles import ArticleCreate, ArticleResponse, UpdateContent, UpdateTags, UpdateTitle, PublishArticle, AutoSaveDraft
+from models.articles import ArticleCreate, ArticleResponse, UpdateContent, UpdateTags, UpdateTitle, PublishArticle, AutoSaveDraft, UpdateCoverImage
 from services.article_service import (
     complete_article,
     create_article,
@@ -15,7 +15,8 @@ from services.article_service import (
     publish_article,
     update_article_content,
     update_article_title,
-    update_article_tags
+    update_article_tags,
+    update_article_cover_image,
 )
 from services.publication_service import schedule_article
 
@@ -44,7 +45,6 @@ async def list_my_published_articles(user_id: str = Depends(get_current_user_id)
 
 @router.get("/{article_id}/draft-info")
 async def get_draft_info(article_id: str, user_id: str = Depends(get_current_user_id)):
-    """Check if there's an auto-saved draft for this article"""
     article = await get_article_by_id(article_id)
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
@@ -66,7 +66,6 @@ async def get_one(article_id: str):
 
 @router.get("/owner/{owner_id}", response_model=list[ArticleResponse])
 async def get_articles_by_owner(owner_id: str = Depends(get_current_user_id)):
-    print("Owner ID:", owner_id)
     return await list_articles_by_owner(owner_id)
 
 @router.get("/{owner_id}/status/{status}", response_model=list[ArticleResponse])
@@ -85,8 +84,7 @@ async def update_status(article_id: str, user_id: str = Depends(get_current_user
     if article.owner_id != user_id:
         raise HTTPException(status_code=403, detail="Not authorized to update this article")
 
-    updated_article = await complete_article(article_id)
-    return updated_article
+    return await complete_article(article_id)
 
 @router.patch("/{article_id}/update-content", response_model=ArticleResponse)
 async def update_content(article_id: str, payload: UpdateContent, user_id: str = Depends(get_current_user_id)):
@@ -97,10 +95,7 @@ async def update_content(article_id: str, payload: UpdateContent, user_id: str =
         raise HTTPException(status_code=403, detail="Not authorized to update this article")
 
     updated_article = await update_article_content(article_id, payload.new_content)
-    
-    # Clear auto-save draft after successful save
     await clear_draft(user_id, article_id)
-    
     return updated_article
 
 @router.patch("/{article_id}/update-title", response_model=ArticleResponse)
@@ -112,10 +107,7 @@ async def update_title(article_id: str, payload: UpdateTitle, user_id: str = Dep
         raise HTTPException(status_code=403, detail="Not authorized to update this article")
 
     updated_article = await update_article_title(article_id, payload.new_title)
-    
-    # Clear auto-save draft after successful save
     await clear_draft(user_id, article_id)
-    
     return updated_article
 
 @router.patch("/{article_id}/update-tags", response_model=ArticleResponse)
@@ -128,10 +120,19 @@ async def update_tags(article_id: str, payload: UpdateTags, user_id: str = Depen
     if len(payload.tags) > 3:
         raise HTTPException(status_code=400, detail="Maximum 3 tags allowed")
 
-    updated = await update_article_content(article_id, article.content)
-    update_article_tags(article_id, {"tags": payload.tags, "updated_at": datetime.utcnow()})
-    article.tags = payload.tags
-    return article
+    updated = await update_article_tags(article_id, payload.tags)
+    return updated
+
+@router.patch("/{article_id}/cover-image", response_model=ArticleResponse)
+async def update_cover_image(article_id: str, payload: UpdateCoverImage, user_id: str = Depends(get_current_user_id)):
+    article = await get_article_by_id(article_id)
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+    if article.owner_id != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    updated = await update_article_cover_image(article_id, payload.cover_image)
+    return updated
 
 # Auto-save endpoint
 @router.post("/{article_id}/auto-save")
